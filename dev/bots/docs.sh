@@ -73,6 +73,7 @@ function parse_args() {
   STAGING_DIR=
   KEEP_STAGING=0
   DESTINATION="$FLUTTER_ROOT/dev/docs/api_docs.zip"
+  RELEASE_CANDIDATE=0
   while (( "$#" )); do
     case "$1" in
       --help)
@@ -88,6 +89,11 @@ function parse_args() {
         ;;
       --output)
         DESTINATION="$2"
+        shift
+        ;;
+      --release-candidate)
+        RELEASE_CANDIDATE=1
+        args=("${args[@]}" "$1")
         shift
         ;;
       *)
@@ -136,6 +142,12 @@ function generate_docs() {
 }
 
 function main() {
+  # Switch input param `--no-release-candidate` to `--release-candidate`
+  # in snippets tool defined in dartdoc_options.yaml
+  if [[ $RELEASE_CANDIDATE -eq 1 ]]; then
+    sed -i 's/--no-release-candidate/--release-candidate/g' $FLUTTER_ROOT/dartdoc_options.yaml
+  fi
+
   echo "Writing docs build temporary output to $DOC_DIR"
   mkdir -p "$DOC_DIR"
   generate_docs

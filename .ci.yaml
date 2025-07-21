@@ -607,6 +607,8 @@ targets:
     dimensions:
       os: "Linux"
     properties:
+      docs:
+        release-candidate: true
       cores: "32"
       dependencies: >-
         [

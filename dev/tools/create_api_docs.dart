@@ -151,6 +151,7 @@ Future<void> main(List<String> arguments) async {
     useJson: args['json'] as bool? ?? true,
     validateLinks: args['validate-links']! as bool,
     verbose: args['verbose'] as bool? ?? false,
+    releaseCandidate: args['release-candidate'] as bool? ?? false,
   );
 
   await dartdocGenerator.generateDartdoc();
@@ -181,6 +182,14 @@ ArgParser _createArgsParser({required String publishDefault}) {
     defaultsTo: publishDefault,
     help: 'Sets the output directory for the documentation.',
   );
+  parser.addFlag(
+    'release-candidate',
+    help:
+        'Define whether to generate documentation that will eventualy may be '
+        'published to the release candidate branch. For release candidate brach '
+        '`api.flutter.dev` domain used and all seach robots are welcomed. For '
+        'all other `main-api.flutter.dev` domain used and serch robots are prohibited.',
+  );
   return parser;
 }
 
@@ -201,6 +210,7 @@ class Configurator {
     required this.filesystem,
     required this.processManager,
     required this.platform,
+    this.releaseCandidate = false,
   });
 
   /// The root of the directory in the Flutter repo where configuration data is
@@ -227,6 +237,9 @@ class Configurator {
   ///
   /// Can be replaced by tests to test behavior on different platforms.
   final Platform platform;
+
+  /// Whether to generate documentation from regular of release candidate branch.
+  final bool releaseCandidate;
 
   void generateConfiguration() {
     final Version version = FlutterInformation.instance.getFlutterVersion();
@@ -388,7 +401,7 @@ class Configurator {
     final String branch = FlutterInformation.instance.getBranchName();
     final String metadata = template.replaceAll(
       '{SITE_URL}',
-      branch == 'stable' ? 'https://api.flutter.dev/' : 'https://main-api.flutter.dev/',
+      releaseCandidate ? 'https://api.flutter.dev/' : 'https://main-api.flutter.dev/',
     );
     metadataPath.parent.create(recursive: true);
     metadataPath.writeAsStringSync(metadata);
@@ -464,13 +477,12 @@ class Configurator {
     );
 
     // Write the Dash/Zeal XML feed file.
-    final bool isStable = platform.environment['LUCI_BRANCH'] == 'stable';
     offlineDir
         .childFile('flutter.xml')
         .writeAsStringSync(
           '<entry>\n'
           '  <version>${FlutterInformation.instance.getFlutterVersion()}</version>\n'
-          '  <url>https://${isStable ? '' : 'main-'}api.flutter.dev/offline/flutter.docset.tar.gz</url>\n'
+          '  <url>https://${releaseCandidate ? '' : 'main-'}api.flutter.dev/offline/flutter.docset.tar.gz</url>\n'
           '</entry>\n',
         );
   }
@@ -496,10 +508,10 @@ class Configurator {
   }
 
   // Creates a robots.txt file that disallows indexing unless the branch is the
-  // stable branch.
+  // release candidate branch.
   void _createRobotsTxt() {
     final File robotsTxt = publishRoot.childFile('robots.txt');
-    if (FlutterInformation.instance.getBranchName() == 'stable') {
+    if (releaseCandidate) {
       robotsTxt.writeAsStringSync('# All robots welcome!');
     } else {
       robotsTxt.writeAsStringSync('User-agent: *\nDisallow: /');
@@ -521,6 +533,7 @@ class DartdocGenerator {
     this.useJson = true,
     this.validateLinks = true,
     this.verbose = false,
+    this.releaseCandidate = false,
   });
 
   /// The root of the directory in the Flutter repo where configuration data is
@@ -552,6 +565,9 @@ class DartdocGenerator {
 
   /// Whether or not to filter overly verbose log output from dartdoc.
   final bool verbose;
+
+  /// Whether to generate documentation from regular or release candidate branch.
+  final bool releaseCandidate;
 
   Future<void> generateDartdoc() async {
     final Directory flutterRoot = FlutterInformation.instance.getFlutterRoot();
@@ -820,10 +836,9 @@ class DartdocGenerator {
 
     // Check a "dartpad" example, any one will do, and check for the correct URL
     // arguments.
-    // Just use "main" for any branch other than "stable", just like it is done
+    // Just use "main" for any branch other than release candidate, just like it is done
     // in the snippet generator at https://github.com/flutter/assets-for-api-docs/blob/cc56972b8f03552fc5f9f9f1ef309efc6c93d7bc/packages/snippets/lib/src/snippet_generator.dart#L104.
-    final String? luciBranch = platform.environment['LUCI_BRANCH']?.trim();
-    final String expectedChannel = luciBranch == 'stable' ? 'stable' : 'main';
+    final String expectedChannel = releaseCandidate ? 'stable' : 'main';
     final List<String> argumentRegExps = <String>[
       r'split=\d+',
       r'run=true',
