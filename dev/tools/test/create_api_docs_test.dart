@@ -375,14 +375,57 @@ void main() {
       );
     });
 
-    test('.generateConfiguration generates search metadata', () async {
+    test('.generateConfiguration generates main-api search metadata by default', () async {
       configurator.generateConfiguration();
       expect(publishRoot.childFile('opensearch.xml').existsSync(), isTrue);
       expect(
         publishRoot.childFile('opensearch.xml').readAsStringSync(),
-        contains('https://api.flutter.dev/'),
+        contains('https://main-api.flutter.dev/'),
       );
     });
+
+    test(
+      '.generateConfiguration generates api search metadata for release candidate branch',
+      () async {
+        final apidocs.Configurator rcConfigurator = apidocs.Configurator(
+          docsRoot: docsRoot,
+          packageRoot: packageRoot,
+          publishRoot: publishRoot,
+          filesystem: fs,
+          processManager: fakeProcessManager,
+          platform: fakePlatform,
+          releaseCandidate: true,
+        );
+        rcConfigurator.generateConfiguration();
+        expect(publishRoot.childFile('opensearch.xml').existsSync(), isTrue);
+        expect(
+          publishRoot.childFile('opensearch.xml').readAsStringSync(),
+          contains('https://api.flutter.dev/'),
+        );
+      },
+    );
+
+    test(
+      '.generateOfflineAssetsIfNeeded welcomes all robots for release candidate branch',
+      () async {
+        fakePlatform.environment['LUCI_CI'] = 'True';
+        final apidocs.Configurator rcConfigurator = apidocs.Configurator(
+          docsRoot: docsRoot,
+          packageRoot: packageRoot,
+          publishRoot: publishRoot,
+          filesystem: fs,
+          processManager: fakeProcessManager,
+          platform: fakePlatform,
+          releaseCandidate: true,
+        );
+        rcConfigurator.generateOfflineAssetsIfNeeded();
+        expect(publishRoot.childFile('robots.txt').existsSync(), isTrue);
+        expect(
+          publishRoot.childFile('robots.txt').readAsStringSync(),
+          contains('# All robots welcome!'),
+        );
+      },
+    );
   });
 
   group('DartDocGenerator', () {

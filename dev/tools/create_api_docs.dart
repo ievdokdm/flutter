@@ -398,7 +398,6 @@ class Configurator {
   /// branch name.
   void _createSearchMetadata(File templatePath, File metadataPath) {
     final String template = templatePath.readAsStringSync();
-    final String branch = FlutterInformation.instance.getBranchName();
     final String metadata = template.replaceAll(
       '{SITE_URL}',
       releaseCandidate ? 'https://api.flutter.dev/' : 'https://main-api.flutter.dev/',
@@ -510,7 +509,7 @@ class Configurator {
   // Creates a robots.txt file that disallows indexing unless the branch is the
   // release candidate branch.
   void _createRobotsTxt() {
-    final File robotsTxt = publishRoot.childFile('robots.txt');
+    final File robotsTxt = publishRoot.childFile('ƒrobots.txt');
     if (releaseCandidate) {
       robotsTxt.writeAsStringSync('# All robots welcome!');
     } else {
